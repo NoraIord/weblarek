@@ -98,3 +98,171 @@ Presenter - презентер содержит основную логику п
 `emit<T extends object>(event: string, data?: T): void` - инициализация события. При вызове события в метод передается название события и объект с данными, который будет использован как аргумент для вызова обработчика.  
 `trigger<T extends object>(event: string, context?: Partial<T>): (data: T) => void` - возвращает функцию, при вызове которой инициализируется требуемое в параметрах событие с передачей в него данных из второго параметра.
 
+Архитектура проекта
+Проект построен на основе компонентного подхода с использованием паттерна MVC (Model-View-Controller). Основные принципы:
+
+Разделение ответственности - данные, представление и логика разделены
+
+Event-driven архитектура - компоненты общаются через события
+
+TypeScript - строгая типизация для надежности кода
+
+Данные
+Интерфейсы данных
+Товар (IProduct)
+`interface IProduct {
+  id: string;           // Уникальный идентификатор товара
+  description: string;  // Описание товара
+  image: string;        // Путь к изображению товара
+  title: string;        // Название товара
+  category: string;     // Категория товара
+  price: number | null; // Цена в синапсах (может быть null)
+}`
+
+
+Покупатель (IBuyer)
+
+`interface IBuyer {
+  payment: TPayment;    // Способ оплаты ('online' | 'offline')
+  email: string;       // Email покупателя
+  phone: string;       // Телефон покупателя
+  address: string;     // Адрес доставки
+}`
+
+
+Модели данных
+1. Каталог товаров (ProductModel)
+Назначение: Управление данными каталога товаров, включая хранение всех доступных товаров и выбранного для просмотра товара.
+
+Конструктор:
+
+
+`constructor(products: IProduct[] = [])`
+products: IProduct[] - начальный массив товаров (по умолчанию пустой)
+
+Поля класса:
+
+`_items: IProduct[] - массив всех товаров каталога`
+
+`_selectedProduct: IProduct | null - товар, выбранный для детального просмотра`
+
+Методы:
+
+`setItems(products: IProduct[]): void - сохраняет массив товаров`
+
+`getItems(): IProduct[] - возвращает массив всех товаров`
+
+`getItem(id: string): IProduct | undefined - возвращает товар по ID`
+
+`setSelectedProduct(product: IProduct): void - сохраняет товар для детального просмотра`
+
+`getSelectedProduct(): IProduct | null - возвращает выбранный товар`
+
+2. Корзина (BasketModel)
+Назначение: Управление товарами, выбранными пользователем для покупки, включая добавление, удаление и расчет стоимости.
+
+Конструктор:
+
+
+`constructor(items: IProduct[] = [])
+items: IProduct[] - начальный массив товаров в корзине`
+
+Поля класса:
+
+`_items: IProduct[] - массив товаров в корзине`
+
+Методы:
+
+`getItems(): IProduct[] - возвращает массив товаров в корзине`
+
+`addItem(product: IProduct): void - добавляет товар в корзину`
+
+`removeItem(productId: string): void - удаляет товар из корзины по ID`
+
+`clear(): void - очищает корзину`
+
+`getTotalPrice(): number - возвращает общую стоимость товаров в корзине`
+
+`getItemsCount(): number - возвращает количество товаров в корзине`
+
+`contains(productId: string): boolean - проверяет наличие товара в корзине по ID`
+
+3. Покупатель (BuyerModel)
+Назначение: Хранение и валидация данных покупателя, введенных при оформлении заказа.
+
+Конструктор:
+
+
+`constructor(data: Partial<IBuyer> = {})`
+`data: Partial<IBuyer> - начальные данные покупателя (опционально)`
+
+Поля класса:
+
+`_payment: TPayment | null - способ оплаты`
+
+`_email: string - email покупателя`
+
+`_phone: string - телефон покупателя`
+
+`_address: string - адрес доставки`
+
+Методы:
+
+`setData(data: Partial<IBuyer>): void - сохраняет данные покупателя (частично или полностью)`
+
+`setPayment(payment: TPayment): void - устанавливает способ оплаты`
+
+`setEmail(email: string): void - устанавливает email`
+
+`setPhone(phone: string): void - устанавливает телефон`
+
+`setAddress(address: string): void - устанавливает адрес`
+
+`getData(): IBuyer - возвращает все данные покупателя`
+
+`clear(): void - очищает все данные покупателя`
+
+`validate(): IValidationResult - проверяет валидность всех данных`
+
+`validateField(field: keyof IBuyer): string | null - проверяет валидность конкретного поля`
+
+Валидация данных
+Правила валидации полей покупателя:
+
+`payment: должно быть выбрано значение ('online' или 'offline')`
+
+`email: не пустая строка, соответствует формату email`
+
+`phone: не пустая строка, соответствует формату телефона`
+
+`address: не пустая строка`
+
+Слой коммуникации
+
+Класс ShopAPI
+Назначение: Обеспечивает взаимодействие с сервером API магазина. Отвечает за получение данных о товарах и отправку заказов.
+
+Конструктор:
+
+
+`constructor(baseApi: IApi)`
+`baseApi: IApi - объект для выполнения HTTP-запросов, реализующий интерфейс IApi`
+
+Методы:
+
+`getProductList(): Promise<IProduct[]> - получает список товаров с сервера`
+
+Возвращает: Promise с массивом товаров
+
+`Endpoint: GET /product/`
+
+`submitOrder(order: IOrderData): Promise<IOrderResult> - отправляет заказ на сервер`
+
+Параметры: `order: IOrderData` - данные заказа
+
+Возвращает: Promise с результатом оформления заказа
+
+`Endpoint: POST /order/`
+
+
+
