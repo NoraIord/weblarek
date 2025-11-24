@@ -265,4 +265,135 @@ items: IProduct[] - начальный массив товаров в корзи
 `Endpoint: POST /order/`
 
 
+🎯 Презентеры (Presenters)
+CatalogPresenter
+Назначение: Управляет отображением каталога товаров, корзины и взаимодействием между ними.
+
+Методы:
+
+`renderCatalog(): void - отображает каталог товаров`
+
+`setupBasketButton(): void - настраивает кнопку корзины в шапке`
+
+`handleCheckout(): void - обработчик оформления заказа`
+
+`updateBasketCounter(): void - обновляет счетчик товаров в шапке ✅`
+
+`openBasketModal(): void - открывает модальное окно корзины`
+
+`openProductModal(product): void - открывает модальное окно товара`
+
+OrderPresenter
+Назначение: Управляет процессом оформления заказа в несколько шагов.
+
+Методы:
+
+`startOrder(): void - начинает процесс оформления заказа`
+
+`renderPaymentStep(): void - отображает шаг выбора оплаты и адреса`
+
+`renderContactsStep(): void - отображает шаг ввода контактов`
+
+`submitOrder(): Promise<void> - отправляет заказ на сервер`
+
+`showSuccess(total): void - показывает экран успешного оформления`
+
+`updateBasketCounter(): void - обновляет счетчик корзины после заказа ✅`
+
+`validateEmail(email): boolean - валидация email`
+
+`validatePhone(phone): boolean - валидация телефона`
+
+🎨 Компоненты представления (Views)
+BasketView
+Назначение: Отображает содержимое корзины в модальном окне.
+
+Методы:
+
+`set items(items) - устанавливает список товаров корзины`
+
+`set total(value) - устанавливает общую сумму`
+
+`set buttonText(value) - устанавливает текст кнопки оформления`
+
+CardView
+Назначение: Отображает карточку товара в каталоге.
+
+Свойства:
+
+`id, title, image, category, price, description`
+
+CardPreviewView
+Назначение: Отображает детальную информацию о товаре в модальном окне.
+
+Свойства:
+
+`id, title, image, category, price, description`
+
+🔧 Вспомогательные методы
+updateBasketCounter()
+
+`private updateBasketCounter(): void`
+Назначение: Обновляет счетчик товаров в иконке корзины в шапке сайта.
+
+Использование:
+
+Автоматически вызывается после добавления/удаления товаров
+
+Вызывается после успешного оформления заказа
+
+Находит элемент .header__basket-counter и обновляет его текст
+
+Логика:
+
+Получает текущее количество товаров из BasketModel.getItemsCount()
+
+Находит элемент счетчика в DOM
+
+Обновляет текстовое содержимое
+
+Логирует процесс для отладки
+
+🛠 Утилиты (Utils)
+ensureElement()
+
+`function ensureElement<T extends HTMLElement>(selector: string, parent?: HTMLElement): T`
+
+Назначение: Безопасно находит DOM элемент, выбрасывает ошибку если элемент не найден.
+
+cloneTemplate()
+
+`function cloneTemplate<T extends HTMLElement>(template: HTMLTemplateElement): T`
+
+Назначение: Клонирует содержимое HTML template элемента.
+
+🔄 Поток данных
+Процесс оформления заказа:
+Каталог → CatalogPresenter.renderCatalog()
+
+Корзина → BasketModel.addItem()/removeItem()
+
+Оформление → OrderPresenter.startOrder()
+
+Шаг 1 → OrderPresenter.renderPaymentStep()
+
+Шаг 2 → OrderPresenter.renderContactsStep()
+
+Отправка → OrderPresenter.submitOrder()
+
+Успех → OrderPresenter.showSuccess()
+
+Очистка → BasketModel.clear() + updateBasketCounter()
+
+🎯 Ключевые особенности
+Событийная архитектура - компоненты общаются через колбэки
+
+Строгая типизация - полная поддержка TypeScript
+
+Модульность - каждый компонент отвечает за свою задачу
+
+Валидация - проверка данных на всех этапах
+
+UX/UI - плавные переходы между состояниями
+
 
