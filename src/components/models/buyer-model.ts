@@ -24,13 +24,6 @@ export class BuyerModel {
         };
     }
 
-    clear(): void {
-        this.payment = null;
-        this.email = '';
-        this.phone = '';
-        this.address = '';
-    }
-
     validate(): IValidationResult {
         const errors: Partial<Record<keyof IBuyer, string>> = {};
 
@@ -43,5 +36,12 @@ export class BuyerModel {
             isValid: Object.keys(errors).length === 0,
             errors
         };
+    }
+
+    clear(): void {
+        this.payment = null;
+        this.email = '';
+        this.phone = '';
+        this.address = '';
     }
 }

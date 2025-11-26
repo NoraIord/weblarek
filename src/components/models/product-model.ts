@@ -14,10 +14,6 @@ export class ProductModel {
         return this.items;
     }
 
-    getItem(id: string): IProduct | undefined {
-        return this.items.find(item => item.id === id);
-    }
-
     setSelectedProduct(product: IProduct): void {
         this.selectedProduct = product;
     }
