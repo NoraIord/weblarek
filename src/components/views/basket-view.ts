@@ -1,3 +1,5 @@
+// src/components/views/basket-view.ts
+
 import { Component } from '../base/component';
 import { ensureElement } from '../../utils/utils';
 
@@ -14,12 +16,12 @@ interface IBasketActions {
     onCheckout: () => void;
 }
 
-export class BasketView extends Component<{ items: IBasketItem[]; total: number }> {
+export class BasketView extends Component<{ items: IBasketItem[]; totalPrice: number }> {
     protected _list: HTMLElement;
     protected _total: HTMLElement;
     protected _button: HTMLButtonElement;
-    private onRemove?: (index: number) => void;
-    private onCheckout?: () => void;
+    private _onRemove?: (index: number) => void;
+    private _onCheckout?: () => void;
 
     constructor(container: HTMLElement, actions?: IBasketActions) {
         super(container);
@@ -29,12 +31,12 @@ export class BasketView extends Component<{ items: IBasketItem[]; total: number 
         this._button = ensureElement<HTMLButtonElement>('.basket__button', container);
 
         if (actions?.onCheckout) {
-            this.onCheckout = actions.onCheckout;
-            this._button.addEventListener('click', this.onCheckout);
+            this._onCheckout = actions.onCheckout;
+            this._button.addEventListener('click', this._onCheckout);
         }
 
         if (actions?.onRemove) {
-            this.onRemove = actions.onRemove;
+            this._onRemove = actions.onRemove;
         }
     }
 
@@ -65,9 +67,9 @@ export class BasketView extends Component<{ items: IBasketItem[]; total: number 
             `;
 
             const deleteButton = itemElement.querySelector('.basket__item-delete');
-            if (deleteButton && this.onRemove) {
+            if (deleteButton && this._onRemove) {
                 deleteButton.addEventListener('click', () => {
-                    this.onRemove!(itemIndex);
+                    this._onRemove!(itemIndex);
                 });
             }
 
@@ -81,10 +83,5 @@ export class BasketView extends Component<{ items: IBasketItem[]; total: number 
 
     set buttonText(value: string) {
         this.setText(this._button, value);
-    }
-
-    // ДОБАВЛЯЕМ публичный метод для получения контейнера если нужно
-    getContainer(): HTMLElement {
-        return this.container;
     }
 }

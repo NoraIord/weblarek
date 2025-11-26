@@ -1,70 +1,49 @@
+// src/components/models/basket-model.ts
+
 import { IProduct } from '../../types';
 
-// Интерфейс для товара в корзине
-interface IBasketItem {
-    product: IProduct;
-    quantity: number;
-}
-
 export class BasketModel {
-    private _items: IBasketItem[] = [];
+    private items: IProduct[] = [];
 
-    getItems(): IBasketItem[] {
-        return this._items;
+    getItems(): IProduct[] {
+        return this.items;
     }
 
     addItem(product: IProduct): void {
-        const existingItem = this._items.find(item => item.product.id === product.id);
-
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            this._items.push({
-                product: product,
-                quantity: 1
-            });
-        }
-
+        this.items.push(product);
         console.log('➕ Товар добавлен в корзину:', product.title);
     }
 
-    // ДОБАВЛЯЕМ метод удаления по индексу
-    removeItemByIndex(index: number): void {
-        if (index >= 0 && index < this._items.length) {
-            const removedItem = this._items[index];
-
-            if (removedItem.quantity > 1) {
-                removedItem.quantity -= 1;
-                console.log('➖ Уменьшено количество:', removedItem.product.title);
-            } else {
-                this._items.splice(index, 1);
-                console.log('🗑️ Удалена позиция:', removedItem.product.title);
-            }
-        }
-    }
-    // СУЩЕСТВУЮЩИЙ метод оставляем как есть
-    removeItem(productId: string): void {
-        const index = this._items.findIndex(item => item.product.id === productId);
+    removeItem(product: IProduct): void {
+        const index = this.items.findIndex(item => item.id === product.id);
         if (index !== -1) {
-            this.removeItemByIndex(index);
+            this.items.splice(index, 1);
+            console.log('🗑️ Товар удален из корзины:', product.title);
         }
     }
 
+    removeItemByIndex(index: number): void {
+        if (index >= 0 && index < this.items.length) {
+            const removedItem = this.items[index];
+            this.items.splice(index, 1);
+            console.log('🗑️ Товар удален по индексу:', removedItem.title);
+        }
+    }
 
     clear(): void {
-        this._items = [];
+        this.items = [];
+        console.log('🛒 Корзина очищена');
     }
 
     getTotalPrice(): number {
-        return this._items.reduce((total, item) =>
-            total + (item.product.price || 0) * item.quantity, 0);
+        return this.items.reduce((total, item) => total + (item.price || 0), 0);
     }
 
     getItemsCount(): number {
-        return this._items.reduce((total, item) => total + item.quantity, 0);
+        return this.items.length;
     }
 
     contains(productId: string): boolean {
-        return this._items.some(item => item.product.id === productId);
+        return this.items.some(item => item.id === productId);
     }
 }

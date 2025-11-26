@@ -260,33 +260,25 @@ export class OrderPresenter {
 
     private async submitOrder(): Promise<void> {
         try {
-            console.log('📦 Начинаем оформление заказа...');
-
             const buyerData = this.buyerModel.getData();
             const basketItems = this.basketModel.getItems();
 
-            // Подготавливаем данные заказа
             const orderData = {
                 payment: buyerData.payment,
                 email: buyerData.email,
                 phone: buyerData.phone,
                 address: buyerData.address,
                 total: this.basketModel.getTotalPrice(),
-                items: basketItems.map(item => item.product.id)
+                items: basketItems.map(item => item.id) // Просто массив ID товаров
             };
 
             console.log('📦 Данные заказа:', orderData);
-
-            // Отправляем заказ на сервер
             const result = await this.shopApi.createOrder(orderData);
 
             console.log('✅ Заказ создан:', result);
-
-            // Показываем экран успеха
             this.showSuccess(result.total);
-
-            // Очищаем корзину
             this.basketModel.clear();
+            this.updateBasketCounter();
 
         } catch (error) {
             console.error('❌ Ошибка при создании заказа:', error);

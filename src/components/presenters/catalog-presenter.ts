@@ -140,15 +140,15 @@ export class CatalogPresenter {
     private updateBasketView(): void {
         const items = this.basketModel.getItems();
         const basketItems = items.map((item, index) => ({
-            id: item.product.id,
+            id: item.id,
             index: index + 1,
-            title: item.product.title,
-            price: item.product.price || 0,
-            quantity: item.quantity
+            title: item.title,
+            price: item.price || 0,
+            quantity: 1
         }));
 
         this.basketView.items = basketItems;
-        this.basketView.total = this.basketModel.getTotalPrice();
+        this.basketView.total = this.basketModel.getTotalPrice(); // Используем переименованное свойство
     }
 
 

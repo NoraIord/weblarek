@@ -1,9 +1,8 @@
-import { Api } from '../base/api';
-// Импортируем только нужные типы
+import { IApi } from '../../types'; // Импортируем интерфейс
 import { IProduct, IProductsResponse, IOrderData, IOrderResult } from '../../types';
 
 export class ShopApi {
-    constructor(private api: Api) {}
+    constructor(private api: IApi) {} // Используем интерфейс IApi вместо класса Api
 
     async getProductList(): Promise<IProduct[]> {
         const response = await this.api.get<IProductsResponse>('/product');
