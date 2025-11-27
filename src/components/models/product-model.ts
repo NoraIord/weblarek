@@ -1,5 +1,3 @@
-// src/components/models/product-model.ts
-
 import { IProduct } from '../../types';
 
 export class ProductModel {

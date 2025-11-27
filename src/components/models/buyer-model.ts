@@ -1,6 +1,12 @@
-// src/components/models/buyer-model.ts
+import { TPayment, IValidationResult } from '../../types';
 
-import { IBuyer, TPayment, IValidationResult } from '../../types';
+// Исправляем интерфейс IBuyer чтобы payment был optional
+interface IBuyer {
+    payment?: TPayment;    // Делаем payment опциональным
+    email: string;
+    phone: string;
+    address: string;
+}
 
 export class BuyerModel {
     private payment: TPayment | null = null;
@@ -16,12 +22,26 @@ export class BuyerModel {
     }
 
     getData(): IBuyer {
-        return {
-            payment: this.payment!,
+        // Возвращаем объект без payment если он null
+        const data: IBuyer = {
             email: this.email,
             phone: this.phone,
             address: this.address
         };
+
+        // Добавляем payment только если он не null
+        if (this.payment !== null) {
+            data.payment = this.payment;
+        }
+
+        return data;
+    }
+
+    clear(): void {
+        this.payment = null;
+        this.email = '';
+        this.phone = '';
+        this.address = '';
     }
 
     validate(): IValidationResult {
@@ -36,12 +56,5 @@ export class BuyerModel {
             isValid: Object.keys(errors).length === 0,
             errors
         };
-    }
-
-    clear(): void {
-        this.payment = null;
-        this.email = '';
-        this.phone = '';
-        this.address = '';
     }
 }
