@@ -1,12 +1,4 @@
-import { TPayment, IValidationResult } from '../../types';
-
-// Исправляем интерфейс IBuyer чтобы payment был optional
-interface IBuyer {
-    payment?: TPayment;    // Делаем payment опциональным
-    email: string;
-    phone: string;
-    address: string;
-}
+import { IBuyer, TPayment, IValidationResult } from '../../types';
 
 export class BuyerModel {
     private payment: TPayment | null = null;
@@ -15,26 +7,19 @@ export class BuyerModel {
     private address: string = '';
 
     setData(data: Partial<IBuyer>): void {
-        if (data.payment) this.payment = data.payment;
-        if (data.email) this.email = data.email;
-        if (data.phone) this.phone = data.phone;
-        if (data.address) this.address = data.address;
+        if (data.payment !== undefined) this.payment = data.payment;
+        if (data.email !== undefined) this.email = data.email;
+        if (data.phone !== undefined) this.phone = data.phone;
+        if (data.address !== undefined) this.address = data.address;
     }
 
     getData(): IBuyer {
-        // Возвращаем объект без payment если он null
-        const data: IBuyer = {
+        return {
+            payment: this.payment, // Может быть null
             email: this.email,
             phone: this.phone,
-            address: this.address
+            address: this.address,
         };
-
-        // Добавляем payment только если он не null
-        if (this.payment !== null) {
-            data.payment = this.payment;
-        }
-
-        return data;
     }
 
     clear(): void {

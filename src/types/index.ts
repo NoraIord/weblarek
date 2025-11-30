@@ -11,7 +11,7 @@ export interface IProduct {
 }
 
 export interface IBuyer {
-    payment: TPayment;
+    payment: TPayment | null; // Разрешаем null
     email: string;
     phone: string;
     address: string;
