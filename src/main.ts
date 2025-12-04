@@ -1,5 +1,3 @@
-// src/main.ts
-
 import './scss/styles.scss';
 
 import { ProductModel } from './components/models/product-model';
@@ -7,258 +5,623 @@ import { BasketModel } from './components/models/basket-model';
 import { BuyerModel } from './components/models/buyer-model';
 import { Api } from './components/base/api';
 import { ShopApi } from './components/api/shop-api';
-import { API_URL, CDN_URL } from './utils/constants';
-import { IProduct, TPayment } from './types';
+import { Modal } from './components/view/modal';
+import { Card, ICardData } from './components/view/card';
+import { Basket } from './components/view/basket';
+import { Order } from './components/view/order';
+import { Success } from './components/view/success';
+import { API_URL, CDN_URL, ensureElement, cloneTemplate } from './utils/constants';
+import type { IProduct, TPayment, IOrderData } from './types';
 
-// Простая функция для отображения товаров
-function renderProducts(products: IProduct[]) {
-    const gallery = document.querySelector('.gallery');
-    if (!gallery) return;
+// Инициализация приложения
+class App {
+    private api: ShopApi;
+    private modal: Modal;
 
-    gallery.innerHTML = '';
+    private productModel: ProductModel;
+    private basketModel: BasketModel;
+    private buyerModel: BuyerModel;
 
-    products.forEach(product => {
-        const productElement = document.createElement('div');
-        productElement.className = 'gallery__item card';
-        productElement.innerHTML = `
-            <span class="card__category">${product.category}</span>
-            <h2 class="card__title">${product.title}</h2>
-            <img class="card__image" src="${CDN_URL}${product.image}" alt="${product.title}" />
-            <span class="card__price">${product.price ? product.price + ' синапсов' : 'Бесценно'}</span>
-        `;
-        gallery.appendChild(productElement);
-    });
-}
+    constructor() {
+        console.log('🔧 Конструктор App вызван');
 
-// Функция для обновления счетчика корзины
-function updateBasketCounter(count: number) {
-    const basketCounter = document.querySelector('.header__basket-counter');
-    if (basketCounter) {
-        basketCounter.textContent = count.toString();
-    }
-}
+        // Инициализируем свойства
+        this.api = new ShopApi(new Api(API_URL));
+        this.productModel = new ProductModel();
+        this.basketModel = new BasketModel();
+        this.buyerModel = new BuyerModel();
 
-async function testModels() {
-    console.log('🧪 ТЕСТИРОВАНИЕ ВСЕХ МЕТОДОВ ВСЕХ МОДЕЛЕЙ ДАННЫХ');
+        console.log('✅ Модели созданы');
 
-    // Тестирование ProductModel
-    console.log('\n=== 📦 ТЕСТИРОВАНИЕ PRODUCTMODEL ===');
-
-    const productModel = new ProductModel();
-
-    // Тест 1: setItems и getItems
-    console.log('\n🧪 Тест 1: setItems и getItems');
-    const testProducts: IProduct[] = [
-        {
-            id: '1',
-            title: 'Тестовый товар 1',
-            description: 'Описание товара 1',
-            image: '/image1.jpg',
-            category: 'софт-скил',
-            price: 1000
-        },
-        {
-            id: '2',
-            title: 'Тестовый товар 2',
-            description: 'Описание товара 2',
-            image: '/image2.jpg',
-            category: 'хард-скил',
-            price: 2000
-        },
-        {
-            id: '3',
-            title: 'Бесценный товар',
-            description: 'Товар без цены',
-            image: '/image3.jpg',
-            category: 'другое',
-            price: null
+        try {
+            this.modal = new Modal(
+                ensureElement<HTMLElement>('#modal-container'),
+                this.productModel
+            );
+            console.log('✅ Модальное окно инициализировано');
+        } catch (error) {
+            console.error('❌ Ошибка инициализации модального окна:', error);
+            this.modal = {} as Modal;
         }
-    ];
 
-    productModel.setItems(testProducts);
-    const allProducts = productModel.getItems();
-    console.log('✅ setItems установлены товары');
-    console.log('✅ getItems возвращает массив товаров:', allProducts);
+        this.initEventHandlers();
+        this.loadProducts();
 
-    // ОТОБРАЖАЕМ ТОВАРЫ НА СТРАНИЦЕ
-    renderProducts(allProducts);
+        (window as any).app = this;
+        console.log('🎉 App инициализирован, доступен как window.app');
+    }
 
-    // Тест 2: setSelectedProduct и getSelectedProduct
-    console.log('\n🧪 Тест 2: setSelectedProduct и getSelectedProduct');
-    productModel.setSelectedProduct(testProducts[0]);
-    const selectedProduct = productModel.getSelectedProduct();
-    console.log('✅ setSelectedProduct установлен товар:', testProducts[0].title);
-    console.log('✅ getSelectedProduct возвращает товар:', selectedProduct);
+    private initEventHandlers() {
+        console.log('🔗 Инициализация обработчиков событий');
 
-    // Тест 3: getItem (поиск по ID)
-    console.log('\n🧪 Тест 3: getItem (поиск по ID)');
-    const foundProduct = allProducts.find(item => item.id === '2');
-    console.log('✅ Найден товар с ID "2":', foundProduct);
+        // События моделей
+        this.productModel.on('productModel:itemsChanged', () => {
+            console.log('📦 Событие: товары изменились');
+            this.renderCatalog();
+        });
 
-    // Тестирование BasketModel
-    console.log('\n=== 🛒 ТЕСТИРОВАНИЕ BASKETMODEL ===');
+        this.basketModel.on('basketModel:changed', () => {
+            console.log('🛒 Событие: корзина изменилась');
+            this.updateBasketCounter();
+        });
 
-    const basketModel = new BasketModel();
+        this.buyerModel.on('buyerModel:changed', () => {
+            console.log('👤 Событие: данные покупателя изменились');
+        });
 
-    // Тест 1: addItem и getItems
-    console.log('\n🧪 Тест 1: addItem и getItems');
-    basketModel.addItem(testProducts[0]);
-    basketModel.addItem(testProducts[1]);
-    basketModel.addItem(testProducts[2]);
-    const basketItems = basketModel.getItems();
-    console.log('✅ addItem добавлены товары в корзину');
-    console.log('✅ getItems возвращает товары в корзине:', basketItems);
+        // События UI
+        try {
+            const basketButton = ensureElement<HTMLButtonElement>('.header__basket');
+            basketButton.addEventListener('click', () => {
+                console.log('📌 Клик по корзине');
+                this.openBasket();
+            });
+            console.log('✅ Обработчик корзины установлен');
+        } catch (error) {
+            console.error('❌ Ошибка установки обработчика корзины:', error);
+        }
 
-    // Тест 2: getItemsCount
-    console.log('\n🧪 Тест 2: getItemsCount');
-    const itemsCount = basketModel.getItemsCount();
-    console.log('✅ getItemsCount возвращает количество товаров:', itemsCount);
+        // Валидация форм в реальном времени
+        document.addEventListener('input', () => {
+            this.validateActiveForm();
+        });
 
-    // ОБНОВЛЯЕМ СЧЕТЧИК КОРЗИНЫ
-    updateBasketCounter(itemsCount);
+        document.addEventListener('change', () => {
+            this.validateActiveForm();
+        });
+    }
 
-    // Тест 3: getTotalPrice
-    console.log('\n🧪 Тест 3: getTotalPrice');
-    const totalPrice = basketModel.getTotalPrice();
-    console.log('✅ getTotalPrice возвращает общую стоимость:', totalPrice);
+    private validateActiveForm() {
+        const activeForm = document.querySelector('.modal__content form');
+        if (!activeForm) return;
 
-    // Тест 4: contains
-    console.log('\n🧪 Тест 4: contains');
-    const containsProduct1 = basketModel.contains('1');
-    const containsProduct999 = basketModel.contains('999');
-    console.log('✅ contains проверяет наличие товара 1:', containsProduct1);
-    console.log('✅ contains проверяет наличие товара 999:', containsProduct999);
+        const isContactsForm = activeForm.querySelector('input[name="email"]') !== null;
 
-    // Тест 5: removeItem
-    console.log('\n🧪 Тест 5: removeItem');
-    basketModel.removeItem(testProducts[0]);
-    const itemsAfterRemoval = basketModel.getItems();
-    const countAfterRemoval = basketModel.getItemsCount();
-    const priceAfterRemoval = basketModel.getTotalPrice();
-    console.log('✅ removeItem удален товар 1');
-    console.log('✅ getItems после удаления:', itemsAfterRemoval);
-    console.log('✅ getItemsCount после удаления:', countAfterRemoval);
-    console.log('✅ getTotalPrice после удаления:', priceAfterRemoval);
+        try {
+            const order = new Order(activeForm as HTMLElement);
 
-    // ОБНОВЛЯЕМ СЧЕТЧИК КОРЗИНЫ ПОСЛЕ УДАЛЕНИЯ
-    updateBasketCounter(countAfterRemoval);
-
-    // Тест 6: clear
-    console.log('\n🧪 Тест 6: clear');
-    basketModel.clear();
-    const itemsAfterClear = basketModel.getItems();
-    const countAfterClear = basketModel.getItemsCount();
-    const priceAfterClear = basketModel.getTotalPrice();
-    console.log('✅ clear очищена корзина');
-    console.log('✅ getItems после очистки:', itemsAfterClear);
-    console.log('✅ getItemsCount после очистки:', countAfterClear);
-    console.log('✅ getTotalPrice после очистки:', priceAfterClear);
-
-    // ОБНОВЛЯЕМ СЧЕТЧИК КОРЗИНЫ ПОСЛЕ ОЧИСТКИ
-    updateBasketCounter(countAfterClear);
-
-    // Тестирование BuyerModel
-    console.log('\n=== 👤 ТЕСТИРОВАНИЕ BUYERMODEL ===');
-
-    const buyerModel = new BuyerModel();
-
-    // Тест 1: setData и getData (частичные данные)
-    console.log('\n🧪 Тест 1: setData и getData (частичные данные)');
-    buyerModel.setData({
-        email: 'test@example.com',
-        phone: '+79991234567',
-        address: 'Тестовый адрес'
-    });
-    const dataWithoutPayment = buyerModel.getData();
-    console.log('✅ setData установлены частичные данные');
-    console.log('✅ getData возвращает данные покупателя:', dataWithoutPayment);
-
-    // Тест 2: validate (невалидные данные)
-    console.log('\n🧪 Тест 2: validate (невалидные данные)');
-    const validationWithoutPayment = buyerModel.validate();
-    console.log('✅ validate возвращает результат валидации:', validationWithoutPayment);
-
-    // Тест 3: setData и getData (полные данные)
-    console.log('\n🧪 Тест 3: setData и getData (полные данные)');
-    buyerModel.setData({
-        payment: 'online' as TPayment,
-        email: 'test@example.com',
-        phone: '+79991234567',
-        address: 'Тестовый адрес'
-    });
-    const dataWithPayment = buyerModel.getData();
-    console.log('✅ setData установлены полные данные');
-    console.log('✅ getData возвращает данные покупателя:', dataWithPayment);
-
-    // Тест 4: validate (валидные данные)
-    console.log('\n🧪 Тест 4: validate (валидные данные)');
-    const validationWithPayment = buyerModel.validate();
-    console.log('✅ validate возвращает результат валидации:', validationWithPayment);
-
-    // Тест 5: clear
-    console.log('\n🧪 Тест 5: clear');
-    buyerModel.clear();
-    const dataAfterClear = buyerModel.getData();
-    const validationAfterClear = buyerModel.validate();
-    console.log('✅ clear очищены данные покупателя');
-    console.log('✅ getData после очистки:', dataAfterClear);
-    console.log('✅ validate после очистки:', validationAfterClear);
-
-    // Тестирование API и работа с реальными данными
-    console.log('\n=== 🌐 ТЕСТИРОВАНИЕ API И РАБОТА С РЕАЛЬНЫМИ ДАННЫМИ ===');
-
-    try {
-        const api = new Api(API_URL);
-        const shopApi = new ShopApi(api);
-
-        console.log('\n🧪 Загрузка товаров с сервера...');
-        const productsFromApi = await shopApi.getProductList();
-        console.log('✅ getProductList загружены товары с сервера');
-        console.log('✅ Массив товаров с сервера:', productsFromApi);
-
-        // Сохраняем товары в модель
-        productModel.setItems(productsFromApi);
-        const productsAfterApi = productModel.getItems();
-        console.log('✅ setItems установлены товары из API в модель');
-        console.log('✅ getItems возвращает товары из модели:', productsAfterApi);
-
-        // ОБНОВЛЯЕМ ТОВАРЫ НА СТРАНИЦЕ РЕАЛЬНЫМИ ДАННЫМИ
-        renderProducts(productsFromApi);
-
-        // Тестируем корзину с реальными данными
-        if (productsFromApi.length > 0) {
-            console.log('\n🧪 Тест корзины с реальными данными с сервера');
-            basketModel.addItem(productsFromApi[0]);
-            if (productsFromApi.length > 1) {
-                basketModel.addItem(productsFromApi[1]);
+            // Обновляем данные покупателя из формы
+            if (isContactsForm) {
+                const email = order.email;
+                const phone = order.phone;
+                this.buyerModel.setData({ email, phone });
+                this.validateContactsForm(order);
+            } else {
+                const payment = order.payment;
+                const address = order.address;
+                this.buyerModel.setData({ payment, address });
+                this.validateOrderForm(order);
             }
-            const basketWithRealItems = basketModel.getItems();
-            const realItemsCount = basketModel.getItemsCount();
-            const realTotalPrice = basketModel.getTotalPrice();
-            console.log('✅ addItem добавлены реальные товары в корзину');
-            console.log('✅ getItems возвращает реальные товары:', basketWithRealItems);
-            console.log('✅ getItemsCount возвращает количество:', realItemsCount);
-            console.log('✅ getTotalPrice возвращает стоимость:', realTotalPrice);
-
-            // ОБНОВЛЯЕМ СЧЕТЧИК КОРЗИНЫ С РЕАЛЬНЫМИ ДАННЫМИ
-            updateBasketCounter(realItemsCount);
+        } catch (error) {
+            console.error('Ошибка валидации формы:', error);
         }
-
-    } catch (error) {
-        console.error('❌ Ошибка API:', error);
     }
 
-    console.log('\n🎉 ВСЕ МЕТОДЫ ВСЕХ МОДЕЛЕЙ УСПЕШНО ПРОТЕСТИРОВАНЫ!');
-    console.log('✅ ProductModel: setItems, getItems, setSelectedProduct, getSelectedProduct');
-    console.log('✅ BasketModel: addItem, removeItem, getItems, getItemsCount, getTotalPrice, contains, clear');
-    console.log('✅ BuyerModel: setData, getData, validate, clear');
-    console.log('✅ ShopApi: getProductList');
+    private async loadProducts() {
+        console.log('🌐 Начинаем загрузку товаров...');
+
+        try {
+            const products = await this.api.getProductList();
+            console.log(`✅ Загружено ${products.length} товаров`);
+
+            if (products.length > 0) {
+                console.log('Пример товара:', {
+                    id: products[0].id,
+                    title: products[0].title,
+                    price: products[0].price
+                });
+            }
+
+            this.productModel.setItems(products);
+        } catch (error) {
+            console.error('❌ Ошибка загрузки товаров:', error);
+            const gallery = ensureElement<HTMLElement>('.gallery');
+            gallery.innerHTML = '<div class="error">Ошибка загрузки товаров. Пожалуйста, обновите страницу.</div>';
+        }
+    }
+
+    private renderCatalog() {
+        console.log('🎨 Начинаем рендер каталога');
+
+        try {
+            const gallery = ensureElement<HTMLElement>('.gallery');
+            const cardTemplate = ensureElement<HTMLTemplateElement>('#card-catalog');
+            const products = this.productModel.getItems();
+
+            console.log(`📊 Будет отображено ${products.length} товаров`);
+
+            gallery.innerHTML = '';
+
+            products.forEach(product => {
+                const cardElement = cloneTemplate<HTMLElement>(cardTemplate);
+                const card = new Card(cardElement, {
+                    onClick: () => {
+                        console.log(`👉 Клик по "${product.title}"`);
+                        this.openProductModal(product);
+                    }
+                });
+
+                const cardData: ICardData = {
+                    ...product,
+                    image: CDN_URL + product.image
+                };
+
+                card.render(cardData);
+                gallery.appendChild(card.container);
+            });
+
+            console.log('✅ Каталог отрендерен');
+        } catch (error) {
+            console.error('❌ Ошибка рендера каталога:', error);
+        }
+    }
+
+    private openProductModal(product: IProduct) {
+        console.log(`🔍 Открываем модалку для "${product.title}"`);
+
+        try {
+            const previewTemplate = ensureElement<HTMLTemplateElement>('#card-preview');
+            const previewElement = cloneTemplate<HTMLElement>(previewTemplate);
+
+            const card = new Card(previewElement, {
+                onClick: (event: MouseEvent) => {
+                    console.log(`🛒 Обработка клика для "${product.title}"`);
+                    this.handleProductAction(product, event);
+                }
+            });
+
+            const isInBasket = this.basketModel.contains(product.id);
+            const buttonText = isInBasket ? 'Удалить из корзины' : 'В корзину';
+            const buttonDisabled = product.price === null;
+
+            const cardData: ICardData = {
+                ...product,
+                image: CDN_URL + product.image,
+                buttonText,
+                buttonDisabled,
+                description: product.description || 'Описание отсутствует'
+            };
+
+            card.render(cardData);
+            this.modal.render({ content: card.container });
+            this.modal.open();
+
+            console.log(`✅ Модалка открыта для "${product.title}"`);
+        } catch (error) {
+            console.error(`❌ Ошибка открытия модалки для "${product.title}":`, error);
+        }
+    }
+
+    private handleProductAction(product: IProduct, event: MouseEvent) {
+        const target = event.target as HTMLButtonElement;
+        console.log(`🎯 Клик по кнопке: "${target.textContent}"`);
+
+        if (target.classList.contains('card__button')) {
+            if (this.basketModel.contains(product.id)) {
+                console.log(`🗑️ Удаляем "${product.title}" из корзины`);
+                this.basketModel.removeItem(product.id);
+            } else if (product.price !== null) {
+                console.log(`➕ Добавляем "${product.title}" в корзину`);
+                this.basketModel.addItem(product);
+            } else {
+                console.log(`⛔ Товар "${product.title}" без цены, нельзя добавить`);
+            }
+            this.modal.close();
+        }
+    }
+
+    private openBasket() {
+        console.log('📦 Открываем корзину');
+
+        try {
+            const basketTemplate = ensureElement<HTMLTemplateElement>('#basket');
+            const basketElement = cloneTemplate<HTMLElement>(basketTemplate);
+
+            const basket = new Basket(basketElement, {
+                onCheckout: () => {
+                    console.log('💳 Нажата кнопка оформления');
+                    this.openOrderForm();
+                }
+            });
+
+            const items = this.basketModel.getItems();
+            const total = this.basketModel.getTotalPrice();
+
+            console.log(`📊 В корзине: ${items.length} товаров на сумму ${total}`);
+
+            if (items.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.textContent = 'Корзина пуста';
+                emptyMessage.className = 'basket__empty';
+                basket.items = [emptyMessage];
+                basket.buttonDisabled = true;
+                console.log('📭 Корзина пуста');
+            } else {
+                const basketItems: HTMLElement[] = [];
+
+                items.forEach((item, index) => {
+                    const itemElement = this.createBasketItem(item, index + 1);
+                    basketItems.push(itemElement);
+                });
+
+                basket.items = basketItems;
+                basket.buttonDisabled = false;
+                console.log(`📋 Показано ${items.length} товаров`);
+            }
+
+            basket.total = total;
+
+            this.modal.render({ content: basket.container });
+            this.modal.open();
+
+            console.log('✅ Корзина открыта');
+        } catch (error) {
+            console.error('❌ Ошибка открытия корзины:', error);
+        }
+    }
+
+    private createBasketItem(product: IProduct, index: number): HTMLElement {
+        console.log(`🛒 Создаем элемент корзины для: ${product.title}`);
+
+        try {
+            // Получаем шаблон
+            const template = ensureElement<HTMLTemplateElement>('#card-basket');
+
+            // Клонируем шаблон
+            const item = cloneTemplate<HTMLElement>(template);
+            console.log('✅ Шаблон клонирован, элемент:', item.tagName, item.className);
+
+            // Находим элементы ВНУТРИ item
+            const title = item.querySelector('.card__title');
+            const price = item.querySelector('.card__price');
+            const indexElement = item.querySelector('.basket__item-index');
+            const deleteButton = item.querySelector('.basket__item-delete');
+
+            // Заполняем данные
+            if (title) {
+                title.textContent = product.title;
+            }
+
+            if (price) {
+                const priceText = product.price !== null ? `${product.price} синапсов` : 'Бесценно';
+                price.textContent = priceText;
+            }
+
+            if (indexElement) {
+                indexElement.textContent = index.toString();
+            }
+
+            // Добавляем обработчик удаления
+            if (deleteButton) {
+                deleteButton.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    console.log(`🗑️ Удаляем: ${product.title}`);
+                    this.basketModel.removeItem(product.id);
+                });
+            }
+
+            return item;
+
+        } catch (error) {
+            console.error(`❌ Ошибка при создании элемента для ${product.title}:`, error);
+
+            // Создаем простой элемент как запасной вариант
+            return this.createSimpleBasketItem(product, index);
+        }
+    }
+
+    private createSimpleBasketItem(product: IProduct, index: number): HTMLElement {
+        const li = document.createElement('li');
+        li.className = 'basket__item card card_compact';
+        li.innerHTML = `
+            <span class="basket__item-index">${index}</span>
+            <span class="card__title">${product.title}</span>
+            <span class="card__price">${product.price} синапсов</span>
+            <button class="basket__item-delete card__button" aria-label="удалить">×</button>
+        `;
+
+        const deleteBtn = li.querySelector('.basket__item-delete');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                this.basketModel.removeItem(product.id);
+            });
+        }
+
+        return li;
+    }
+
+    private updateBasketCounter() {
+        try {
+            const counter = ensureElement<HTMLElement>('.header__basket-counter');
+            const count = this.basketModel.getItemsCount();
+            counter.textContent = count.toString();
+            console.log(`🔢 Счетчик корзины обновлен: ${count}`);
+        } catch (error) {
+            console.error('❌ Ошибка обновления счетчика:', error);
+        }
+    }
+
+    private openOrderForm() {
+        console.log('📄 Открываем форму заказа (первый шаг)');
+
+        try {
+            const orderTemplate = ensureElement<HTMLTemplateElement>('#order');
+            const orderElement = cloneTemplate<HTMLElement>(orderTemplate);
+
+            const order = new Order(orderElement, {
+                onClick: (event: MouseEvent) => {
+                    this.handlePaymentSelect(event);
+                },
+                onSubmit: (event: SubmitEvent) => {
+                    event.preventDefault();
+                    this.proceedToContacts();
+                }
+            });
+
+            // Заполняем сохраненными данными
+            const buyerData = this.buyerModel.getData();
+            order.render(buyerData);
+
+            // Проверяем валидность
+            this.validateOrderForm(order);
+
+            this.modal.render({ content: order.container });
+            this.modal.open();
+
+            console.log('✅ Форма заказа открыта');
+        } catch (error) {
+            console.error('❌ Ошибка открытия формы заказа:', error);
+        }
+    }
+
+    private handlePaymentSelect(event: MouseEvent) {
+        const button = event.target as HTMLButtonElement;
+
+        if (button.name === 'card' || button.name === 'cash') {
+            const payment: TPayment = button.name === 'card' ? 'online' : 'offline';
+            console.log('💳 Выбран способ оплаты:', payment);
+            this.buyerModel.setData({ payment });
+
+            // Обновляем UI кнопок
+            const buttons = document.querySelectorAll('.order__buttons button');
+            buttons.forEach(btn => {
+                const btnElement = btn as HTMLButtonElement;
+                if (btnElement.name === button.name) {
+                    btnElement.classList.add('button_alt-active');
+                } else {
+                    btnElement.classList.remove('button_alt-active');
+                }
+            });
+        }
+    }
+
+    private validateOrderForm(order: Order) {
+        const buyerData = this.buyerModel.getData();
+
+        // Проверяем только поля первого шага
+        const hasPayment = buyerData.payment !== null;
+        const hasAddress = buyerData.address.trim() !== '';
+        const isValid = hasPayment && hasAddress;
+
+        order.buttonDisabled = !isValid;
+
+        if (!isValid) {
+            const errors = [];
+            if (!hasPayment) errors.push('Выберите способ оплаты');
+            if (!hasAddress) errors.push('Введите адрес доставки');
+            order.errors = errors.join(', ');
+        } else {
+            order.errors = '';
+        }
+    }
+
+    private proceedToContacts() {
+        console.log('➡️ Переход к форме контактов');
+
+        // Получаем данные из формы
+        const addressInput = document.querySelector('input[name="address"]') as HTMLInputElement;
+        const address = addressInput ? addressInput.value.trim() : '';
+
+        // Получаем выбранный способ оплаты
+        const activePaymentButton = document.querySelector('.button_alt-active') as HTMLButtonElement;
+        const payment = activePaymentButton ?
+            (activePaymentButton.name === 'card' ? 'online' as TPayment : 'offline' as TPayment) :
+            null;
+
+        console.log('Данные из формы:', { payment, address });
+
+        // Проверяем только поля первого шага
+        const errors: string[] = [];
+
+        if (!payment) {
+            errors.push('Выберите способ оплаты');
+        }
+
+        if (!address) {
+            errors.push('Введите адрес доставки');
+        }
+
+        if (errors.length > 0) {
+            console.log('Ошибки первого шага:', errors);
+            const errorElement = document.querySelector('.form__errors');
+            if (errorElement) {
+                errorElement.textContent = errors.join(', ');
+            }
+            return;
+        }
+
+        // Сохраняем данные
+        this.buyerModel.setData({
+            payment,
+            address
+        });
+
+        console.log('✅ Первый шаг пройден, открываем форму контактов');
+        this.openContactsForm();
+    }
+
+    private openContactsForm() {
+        console.log('📞 Открываем форму контактов');
+
+        try {
+            const contactsTemplate = ensureElement<HTMLTemplateElement>('#contacts');
+            const contactsElement = cloneTemplate<HTMLElement>(contactsTemplate);
+
+            const contactsForm = new Order(contactsElement, {
+                onClick: () => {}, // В форме контактов нет кнопок оплаты
+                onSubmit: (event: SubmitEvent) => {
+                    event.preventDefault();
+                    this.submitOrder();
+                }
+            });
+
+            // Заполняем сохраненными данными
+            const buyerData = this.buyerModel.getData();
+            contactsForm.render(buyerData);
+
+            // Проверяем валидность
+            this.validateContactsForm(contactsForm);
+
+            this.modal.render({ content: contactsForm.container });
+            this.modal.open();
+
+            console.log('✅ Форма контактов открыта');
+        } catch (error) {
+            console.error('❌ Ошибка открытия формы контактов:', error);
+        }
+    }
+
+    private validateContactsForm(form: Order) {
+        const validation = this.buyerModel.validate();
+
+        // Проверяем все поля
+        form.buttonDisabled = !validation.isValid;
+
+        if (!validation.isValid) {
+            const errors = Object.values(validation.errors).filter(Boolean).join(', ');
+            form.errors = errors;
+        } else {
+            form.errors = '';
+        }
+    }
+
+    private async submitOrder() {
+        console.log('🚀 Отправка заказа');
+
+        try {
+            // Получаем данные из формы
+            const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+            const phoneInput = document.querySelector('input[name="phone"]') as HTMLInputElement;
+
+            if (emailInput && phoneInput) {
+                this.buyerModel.setData({
+                    email: emailInput.value,
+                    phone: phoneInput.value
+                });
+            }
+
+            // Проверяем валидность
+            const validation = this.buyerModel.validate();
+            if (!validation.isValid) {
+                console.log('Ошибки валидации:', validation.errors);
+                const errorElement = document.querySelector('.form__errors');
+                if (errorElement) {
+                    const errors = Object.values(validation.errors).filter(Boolean).join(', ');
+                    errorElement.textContent = errors;
+                }
+                return;
+            }
+
+            const buyerData = this.buyerModel.getData();
+            const items = this.basketModel.getItems();
+
+            if (items.length === 0) {
+                console.error('Корзина пуста');
+                alert('Корзина пуста!');
+                return;
+            }
+
+            // Формируем данные заказа
+            const orderData: IOrderData = {
+                payment: buyerData.payment!,
+                email: buyerData.email,
+                phone: buyerData.phone,
+                address: buyerData.address,
+                total: this.basketModel.getTotalPrice(),
+                items: items.map(item => item.id)
+            };
+
+            console.log('📤 Отправляем заказ:', orderData);
+
+            // Отправляем на сервер
+            const result = await this.api.createOrder(orderData);
+            console.log('✅ Заказ оформлен:', result);
+
+            // Показываем успех
+            this.showSuccess(result.total);
+
+            // Очищаем корзину и данные покупателя
+            this.basketModel.clear();
+            this.buyerModel.clear();
+
+        } catch (error) {
+            console.error('❌ Ошибка оформления заказа:', error);
+            const errorElement = document.querySelector('.form__errors');
+            if (errorElement) {
+                errorElement.textContent = 'Ошибка оформления заказа. Попробуйте еще раз.';
+            }
+        }
+    }
+
+    private showSuccess(total: number) {
+        console.log('🎉 Показываем успешное оформление');
+
+        try {
+            const successTemplate = ensureElement<HTMLTemplateElement>('#success');
+            const successElement = cloneTemplate<HTMLElement>(successTemplate);
+
+            const success = new Success(successElement, {
+                onClick: () => {
+                    console.log('Закрытие окна успеха');
+                    this.modal.close();
+                }
+            });
+
+            success.total = total;
+
+            this.modal.render({ content: success.container });
+            this.modal.open();
+
+            console.log('✅ Окно успеха показано');
+        } catch (error) {
+            console.error('❌ Ошибка показа окна успеха:', error);
+        }
+    }
 }
 
-// Запускаем тесты после загрузки DOM
+// Запуск приложения
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 ЗАПУСК ПОЛНОГО ТЕСТИРОВАНИЯ МОДЕЛЕЙ ДАННЫХ...');
-    testModels().catch(error => {
-        console.error('❌ Ошибка при запуске тестов:', error);
-    });
+    console.log('🚀 DOM загружен, запускаем App');
+    new App();
 });

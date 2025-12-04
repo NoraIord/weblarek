@@ -1,4 +1,4 @@
-// УБИРАЕМ дублирующиеся объявления
+// УБИРАЕМ дублирующиеся объявления и неиспользуемые импорты
 export type TPayment = 'online' | 'offline';
 
 export interface IProduct {
@@ -29,7 +29,6 @@ export interface IApi {
     post<T extends object>(uri: string, data: object, method?: ApiPostMethods): Promise<T>;
 }
 
-// УБИРАЕМ дубликат IOrderData - оставляем только один
 export interface IOrderData {
     payment: TPayment;
     email: string;
@@ -48,4 +47,3 @@ export interface IProductsResponse {
     total: number;
     items: IProduct[];
 }
-

@@ -1,25 +1,34 @@
-// src/components/models/basket-model.ts
-
 import { IProduct } from '../../types';
+import { EventEmitter } from '../base/events';
 
-export class BasketModel {
+export class BasketModel extends EventEmitter {
     private items: IProduct[] = [];
 
-    // Добавляем тип для параметра product
     addItem(product: IProduct): void {
-        this.items.push(product);
+        console.log('BasketModel: добавляем товар', product.id);
+        if (!this.contains(product.id)) {
+            this.items.push(product);
+            console.log('BasketModel: товар добавлен, эмитим событие');
+            this.emit('basketModel:changed', this.items);
+        } else {
+            console.log('BasketModel: товар уже в корзине');
+        }
     }
 
-    // Добавляем тип для параметра product
-    removeItem(product: IProduct): void {
-        const index = this.items.findIndex(item => item.id === product.id);
+    removeItem(productId: string): void {
+        console.log('BasketModel: удаляем товар', productId);
+        const index = this.items.findIndex(item => item.id === productId);
         if (index !== -1) {
             this.items.splice(index, 1);
+            console.log('BasketModel: товар удален, эмитим событие');
+            this.emit('basketModel:changed', this.items);
+        } else {
+            console.log('BasketModel: товар не найден в корзине');
         }
     }
 
     getItems(): IProduct[] {
-        return this.items;
+        return [...this.items]; // Возвращаем копию массива
     }
 
     getItemsCount(): number {
@@ -35,6 +44,8 @@ export class BasketModel {
     }
 
     clear(): void {
+        console.log('BasketModel: очищаем корзину');
         this.items = [];
+        this.emit('basketModel:changed', this.items);
     }
 }
