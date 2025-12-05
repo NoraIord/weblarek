@@ -1,13 +1,11 @@
+// components/view/card.ts
 import { Component } from '../base/component';
-// Убираем неиспользуемый импорт IProduct, так как у нас есть свой ICardData
-// import { IProduct } from '../../types';
 import { categoryMap } from '../../utils/constants';
 
 interface ICardActions {
     onClick: (event: MouseEvent) => void;
 }
 
-// Создаем отдельный интерфейс для данных Card
 export interface ICardData {
     id?: string;
     description?: string;
@@ -99,10 +97,5 @@ export class Card extends Component<ICardData> {
         if (this._button) {
             this.setDisabled(this._button, state);
         }
-    }
-
-    render(data?: Partial<ICardData>): HTMLElement {
-        super.render(data);
-        return this.container;
     }
 }

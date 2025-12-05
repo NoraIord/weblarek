@@ -1,3 +1,4 @@
+// components/base/api.ts
 import { ApiPostMethods, IApi } from '../../types';
 
 export class Api implements IApi {
@@ -9,6 +10,9 @@ export class Api implements IApi {
 
     async get<T extends object>(uri: string): Promise<T> {
         const response = await fetch(this.baseUrl + uri);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        }
         return response.json();
     }
 
@@ -20,6 +24,9 @@ export class Api implements IApi {
             },
             body: JSON.stringify(data),
         });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        }
         return response.json();
     }
 }

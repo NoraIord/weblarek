@@ -1,4 +1,4 @@
-// УБИРАЕМ дублирующиеся объявления и неиспользуемые импорты
+// src/types/index.ts
 export type TPayment = 'online' | 'offline';
 
 export interface IProduct {
@@ -11,7 +11,7 @@ export interface IProduct {
 }
 
 export interface IBuyer {
-    payment: TPayment | null; // Разрешаем null
+    payment: TPayment | null;
     email: string;
     phone: string;
     address: string;

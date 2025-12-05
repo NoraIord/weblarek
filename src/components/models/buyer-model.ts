@@ -1,3 +1,4 @@
+// components/models/buyer-model.ts
 import { IBuyer, TPayment, IValidationResult } from '../../types';
 import { EventEmitter } from '../base/events';
 
@@ -57,19 +58,15 @@ export class BuyerModel extends EventEmitter {
 
         if (!this.payment) {
             errors.payment = 'Не выбран способ оплаты';
-            console.log('Ошибка: не выбран способ оплаты');
         }
         if (!this.email.trim()) {
             errors.email = 'Укажите email';
-            console.log('Ошибка: email не указан');
         }
         if (!this.phone.trim()) {
             errors.phone = 'Укажите телефон';
-            console.log('Ошибка: телефон не указан');
         }
         if (!this.address.trim()) {
             errors.address = 'Укажите адрес';
-            console.log('Ошибка: адрес не указан');
         }
 
         const isValid = Object.keys(errors).length === 0;

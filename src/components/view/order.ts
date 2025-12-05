@@ -1,9 +1,10 @@
+// components/view/order.ts
 import { Component } from '../base/component';
 import { IBuyer, TPayment } from '../../types';
 
 interface IOrderActions {
-    onClick: (event: MouseEvent) => void;
-    onSubmit: (event: SubmitEvent) => void;
+    onClick?: (event: MouseEvent) => void;
+    onSubmit?: (event: SubmitEvent) => void;
 }
 
 export class Order extends Component<IBuyer> {
@@ -18,13 +19,13 @@ export class Order extends Component<IBuyer> {
         super(container);
 
         const button = this.container.querySelector('.order__button, .button[type="submit"]');
-        const paymentButtons = this.container.querySelectorAll('button[name]');
+        const paymentButtons = this.container.querySelectorAll('button[name="card"], button[name="cash"]');
         const addressInput = this.container.querySelector('input[name="address"]');
         const emailInput = this.container.querySelector('input[name="email"]');
         const phoneInput = this.container.querySelector('input[name="phone"]');
         const errors = this.container.querySelector('.form__errors');
 
-        if (!button || !paymentButtons || !errors) {
+        if (!button || !paymentButtons || paymentButtons.length === 0 || !errors) {
             throw new Error('Не найдены необходимые элементы формы заказа');
         }
 
@@ -34,12 +35,15 @@ export class Order extends Component<IBuyer> {
 
         if (addressInput) {
             this._addressInput = addressInput as HTMLInputElement;
+            this._addressInput.addEventListener('input', () => this.emitChanges());
         }
         if (emailInput) {
             this._emailInput = emailInput as HTMLInputElement;
+            this._emailInput.addEventListener('input', () => this.emitChanges());
         }
         if (phoneInput) {
             this._phoneInput = phoneInput as HTMLInputElement;
+            this._phoneInput.addEventListener('input', () => this.emitChanges());
         }
 
         if (actions?.onSubmit) {
@@ -48,27 +52,18 @@ export class Order extends Component<IBuyer> {
 
         if (actions?.onClick) {
             this._paymentButtons.forEach(button => {
-                button.addEventListener('click', actions.onClick);
+                button.addEventListener('click', actions.onClick!);
             });
-        }
-
-        // Валидация в реальном времени
-        if (this._addressInput) {
-            this._addressInput.addEventListener('input', () => this.emitChanges());
-        }
-        if (this._emailInput) {
-            this._emailInput.addEventListener('input', () => this.emitChanges());
-        }
-        if (this._phoneInput) {
-            this._phoneInput.addEventListener('input', () => this.emitChanges());
         }
     }
 
-    set payment(value: TPayment) {
-        this._paymentButtons.forEach(button => {
-            const isActive = button.name === value;
-            button.classList.toggle('button_alt-active', isActive);
-        });
+    set payment(value: TPayment | null) {
+        if (value) {
+            this._paymentButtons.forEach(button => {
+                const isActive = button.name === value;
+                button.classList.toggle('button_alt-active', isActive);
+            });
+        }
     }
 
     set address(value: string) {
@@ -117,17 +112,7 @@ export class Order extends Component<IBuyer> {
     }
 
     private emitChanges() {
-        this.container.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-
-    clear() {
-        if (this._addressInput) this._addressInput.value = '';
-        if (this._emailInput) this._emailInput.value = '';
-        if (this._phoneInput) this._phoneInput.value = '';
-        this.errors = '';
-        this._paymentButtons.forEach(button =>
-            button.classList.remove('button_alt-active')
-        );
+        this.container.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     render(data?: Partial<IBuyer>): HTMLElement {

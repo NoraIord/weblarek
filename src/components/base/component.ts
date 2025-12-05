@@ -1,6 +1,7 @@
+
 export abstract class Component<T> {
-    // Изменяем protected на public или добавляем геттер
-    public container: HTMLElement;
+    // Делаем container публичным или добавляем геттер
+    public readonly container: HTMLElement;
 
     constructor(container: HTMLElement) {
         this.container = container;
@@ -33,7 +34,9 @@ export abstract class Component<T> {
 
     // Рендер компонента
     render(data?: Partial<T>): HTMLElement {
-        Object.assign(this as object, data);
+        if (data) {
+            Object.assign(this as object, data);
+        }
         return this.container;
     }
 }

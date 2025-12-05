@@ -1,3 +1,4 @@
+// components/models/basket-model.ts
 import { IProduct } from '../../types';
 import { EventEmitter } from '../base/events';
 

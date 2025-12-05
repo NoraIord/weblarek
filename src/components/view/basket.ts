@@ -1,13 +1,13 @@
+// components/view/basket.ts
 import { Component } from '../base/component';
 
 interface IBasket {
     items: HTMLElement[];
     total: number;
-    selected: string[];
 }
 
 interface IBasketActions {
-    onCheckout: () => void;
+    onCheckout?: () => void;
 }
 
 export class Basket extends Component<IBasket> {
@@ -35,31 +35,18 @@ export class Basket extends Component<IBasket> {
         }
     }
 
-    // Сделаем сеттеры публичными
-    public set items(items: HTMLElement[]) {
-        console.log('Basket: устанавливаем items', items.length);
+    set items(items: HTMLElement[]) {
         this._list.innerHTML = '';
-        if (items.length > 0) {
-            items.forEach(item => {
-                console.log('Basket: добавляем item', item);
-                this._list.appendChild(item);
-            });
-        }
+        items.forEach(item => {
+            this._list.appendChild(item);
+        });
     }
 
-    public set total(total: number) {
-        console.log('Basket: устанавливаем total', total);
-        this.setText(this._total, `${total} синапсов`);
+    set total(value: number) {
+        this.setText(this._total, `${value} синапсов`);
     }
 
-    public set buttonDisabled(state: boolean) {
-        console.log('Basket: устанавливаем buttonDisabled', state);
+    set buttonDisabled(state: boolean) {
         this.setDisabled(this._button, state);
-    }
-
-    render(data?: Partial<IBasket>): HTMLElement {
-        console.log('Basket: render с данными', data);
-        super.render(data);
-        return this.container;
     }
 }

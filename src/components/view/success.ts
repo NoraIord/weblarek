@@ -1,3 +1,4 @@
+// components/view/success.ts
 import { Component } from '../base/component';
 
 interface ISuccess {
@@ -5,7 +6,7 @@ interface ISuccess {
 }
 
 interface ISuccessActions {
-    onClick: () => void;
+    onClick?: () => void;
 }
 
 export class Success extends Component<ISuccess> {
@@ -32,10 +33,5 @@ export class Success extends Component<ISuccess> {
 
     set total(value: number) {
         this.setText(this._total, `Списано ${value} синапсов`);
-    }
-
-    render(data?: Partial<ISuccess>): HTMLElement {
-        super.render(data);
-        return this.container;
     }
 }
